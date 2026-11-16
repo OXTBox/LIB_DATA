@@ -18,10 +18,16 @@ put Data.Relative(tFile) into tStored                           -- "Models/Vehic
 1. `Data.UseRoot` (this session only: tests, a USB stick), else
 2. the user's choice saved by `Data.SetRoot`, kept in `<AppData>/Vibecode3D/data_root.txt`
    (outside the Data folder, so moving the folder keeps the setting), else
-3. **`Documents/Data`**, the default.
+3. where `Documents/Data/ROOT.md` says the Data folder moved (`Moved to: <folder>`), when
+   that folder is there; the choice is then saved again, else
+4. **`Documents/Data`**, the default.
 
 The first use creates the folder, every kind's subfolder and a `ROOT.md` that explains it.
-`Data.SetRoot(empty)` goes back to the default.
+`Data.SetRoot(folder)` also writes the forwarding line into the default `Documents/Data/ROOT.md`
+(making that folder if needed), so a wiped AppData, a reset PC or a new account still finds
+the Data folder. If the folder it names is missing (a USB stick out), `Documents/Data` is used,
+the line is kept, and `Data.Error()` says why. `Data.SetRoot(empty)` goes back to the default
+and takes the line away.
 
 ## Kinds
 
@@ -66,6 +72,10 @@ cannot leave the Data folder.
 `python3 tests/run_tests.py`: 29 checks in real LiveCode 9.6.3 through LIB_MCP, in a
 throwaway folder (`C:/LIB_MCP/data_test`); the user's own `Documents/Data` is never created
 or touched. All pass.
+
+`OXT-BEYOND/tests/t32_data_forwarding.txt`: the forwarding line, headless (no window), on the
+OXT-Beyond engine and the 9.6.3 server, with `Data.TestFolders` standing in for Documents and
+AppData. 19 checks, all pass on both.
 
 ## Next
 
