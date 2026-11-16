@@ -11,18 +11,26 @@ script "LIB_DATA"
 --
 -- Kinds and their folders: Data.Kinds(). The layout and its rules: LIB_ig3d/DATA_FOLDER.md.
 -- Names may contain "/" for subfolders but never "..": a name cannot leave the Data folder.
--- Handlers: Data.Root, Data.DefaultRoot, Data.SavedRoot, Data.SetRoot, Data.UseRoot,
+-- Handlers: Data.Root, Data.DefaultRoot, Data.SavedRoot, Data.ForwardedRoot, Data.SetRoot, Data.UseRoot,
 -- Data.Ensure, Data.Kinds, Data.KindFolder, Data.Folder, Data.Path, Data.Relative,
--- Data.SaveText, Data.LoadText, Data.DatedName, Data.Error
+-- Data.SaveText, Data.LoadText, Data.DatedName, Data.Error; test hook Data.TestFolders
 --
 -- Errors: a handler that cannot do its job returns empty (or false); Data.Error() says why.
+--
+-- Moving the Data folder (Data.SetRoot) also leaves a forwarding line in the default
+-- Documents/Data/ROOT.md ("Moved to: <folder>"). When data_root.txt is lost (a cleaner wiped
+-- AppData, a new Windows account, a reset PC), Data.Root follows that line and saves the
+-- choice again; if the folder it names isn't there (a USB stick out), Documents/Data is used
+-- and Data.Error() says so. Data.SetRoot(empty) takes the line away.
 
 local sRoot        -- the root in use this session, once found and checked
 local sSessionRoot -- set by Data.UseRoot: this session only, never saved
 local sError       -- the last problem, for Data.Error
+local sTestDocs, sTestSupport   -- test hook (Data.TestFolders): stand-ins for Documents, AppData
 
 constant kAppFolder = "Vibecode3D"
 constant kPointerFile = "data_root.txt"
+constant kMoved = "Moved to: "   -- the forwarding line in the default ROOT.md
 
 -------------------------------------------------------------------- the layout
 
@@ -62,8 +70,21 @@ end Data.KindFolder
 
 -- Documents/Data
 function Data.DefaultRoot
+   if sTestDocs is not empty then return sTestDocs & "/Data"
    return specialFolderPath("Documents") & "/Data"
 end Data.DefaultRoot
+
+-- where the default Data folder's ROOT.md says the Data folder went, or empty
+function Data.ForwardedRoot
+   local tFile, tLine
+   put Data.DefaultRoot() & "/ROOT.md" into tFile
+   if there is not a file tFile then return empty
+   repeat for each line tLine in textDecode(URL ("binfile:" & tFile), "UTF-8")
+      replace numToChar(13) with empty in tLine
+      if tLine begins with kMoved then return dataClean(char (the number of chars of kMoved + 1) to -1 of tLine)
+   end repeat
+   return empty
+end Data.ForwardedRoot
 
 -- the folder the user chose with Data.SetRoot, or empty
 function Data.SavedRoot
@@ -75,13 +96,24 @@ function Data.SavedRoot
    return dataClean(tLine)
 end Data.SavedRoot
 
--- the Data folder in use: Data.UseRoot's, else the saved choice, else Documents/Data.
+-- the Data folder in use: Data.UseRoot's, else the saved choice, else where Documents/Data's
+-- ROOT.md says it moved (the choice is saved again), else Documents/Data.
 -- Creates it, with its folders and ROOT.md, the first time.
 function Data.Root
-   local tRoot
+   local tRoot, tFwd
    if sRoot is not empty then return sRoot
    put sSessionRoot into tRoot
    if tRoot is empty then put Data.SavedRoot() into tRoot
+   if tRoot is empty then
+      put Data.ForwardedRoot() into tFwd
+      if tFwd is not empty and there is a folder tFwd then
+         -- the saved choice was lost: follow the forwarding line, and remember it again
+         put tFwd into tRoot
+         get dataSavePointer(tRoot)
+      else if tFwd is not empty then
+         put "the Data folder moved to " & tFwd & ", which isn't there now; using " & Data.DefaultRoot() into sError
+      end if
+   end if
    if tRoot is empty then put Data.DefaultRoot() into tRoot
    if not dataMakeFolder(tRoot) then return empty
    put tRoot into sRoot
@@ -98,11 +130,17 @@ function Data.SetRoot pFolder
       if there is a file tFile then
          delete file tFile
       end if
+      dataForward empty
    else
       put dataClean(pFolder) into pFolder
       if not dataMakeFolder(pFolder) then return empty
-      if not dataMakeFolder(specialFolderPath("support") & "/" & kAppFolder) then return empty
-      put textEncode(pFolder, "UTF-8") into URL ("binfile:" & tFile)
+      if not dataSavePointer(pFolder) then return empty
+      -- a second copy of the choice, where it survives a wiped AppData
+      if pFolder is Data.DefaultRoot() then
+         dataForward empty
+      else
+         dataForward pFolder
+      end if
    end if
    return Data.Root()
 end Data.SetRoot
@@ -224,11 +262,58 @@ function Data.Error
    return sError
 end Data.Error
 
+-- test hook: stand-ins for the Documents and AppData folders (empty: the real ones again)
+command Data.TestFolders pDocuments, pSupport
+   put dataClean(pDocuments) into sTestDocs
+   put dataClean(pSupport) into sTestSupport
+   put empty into sRoot
+end Data.TestFolders
+
 -------------------------------------------------------------------- private
 
 private function dataPointerFile
+   if sTestSupport is not empty then return sTestSupport & "/" & kAppFolder & "/" & kPointerFile
    return specialFolderPath("support") & "/" & kAppFolder & "/" & kPointerFile
 end dataPointerFile
+
+-- write data_root.txt; false (and Data.Error) if it can't be
+private function dataSavePointer pFolder
+   local tFile, tDir
+   put dataPointerFile() into tFile
+   set the itemDelimiter to "/"
+   put item 1 to -2 of tFile into tDir
+   if not dataMakeFolder(tDir) then return false
+   put textEncode(pFolder, "UTF-8") into URL ("binfile:" & tFile)
+   return true
+end dataSavePointer
+
+-- the forwarding line in the default Data folder's ROOT.md: pFolder, or none when empty.
+-- The rest of ROOT.md is kept; a default folder that doesn't exist yet is made for it.
+private command dataForward pFolder
+   local tDefault, tFile, tText, tLine, tOut
+   put Data.DefaultRoot() into tDefault
+   put tDefault & "/ROOT.md" into tFile
+   if there is a file tFile then
+      put textDecode(URL ("binfile:" & tFile), "UTF-8") into tText
+   else if pFolder is empty then
+      exit dataForward
+   else
+      if not dataMakeFolder(tDefault) then exit dataForward
+      put "# Data" & return & return & "The default Data folder (LIB_DATA)." & return into tText
+   end if
+   replace numToChar(13) with empty in tText
+   repeat for each line tLine in tText
+      if tLine begins with kMoved or tLine begins with "The Data folder moved" then next repeat
+      put tLine & return after tOut
+   end repeat
+   repeat while tOut ends with (return & return)
+      delete the last char of tOut
+   end repeat
+   if pFolder is not empty then
+      put return & "The Data folder moved (Data.SetRoot). Every tool follows the line below when its saved choice is lost:" & return & kMoved & pFolder & return after tOut
+   end if
+   put textEncode(tOut, "UTF-8") into URL ("binfile:" & tFile)
+end dataForward
 
 -- the full path of a kind's folder (not created); empty and a message if the kind is unknown
 private function dataKindPath pKind
