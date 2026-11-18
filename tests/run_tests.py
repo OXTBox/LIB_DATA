@@ -23,7 +23,7 @@ TESTS = [
     ('put Data.KindFolder("Snapshots")', 'Work/Snapshots'),
     ('put Data.KindFolder("Models")', 'Models'),
     ('put Data.KindFolder("Nope") is empty', 'true'),
-    ('put the number of lines of Data.Kinds()', '19'),
+    ('put the number of lines of Data.Kinds()', '20'),
     ('put Data.DefaultRoot() ends with "/Documents/Data"', 'true'),
     ('Data.UseRoot "%s/"\nput Data.Root()' % ROOT, ROOT),
     ('put there is a file (Data.Root() & "/ROOT.md")', 'true'),

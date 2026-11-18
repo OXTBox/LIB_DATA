@@ -42,7 +42,7 @@ and takes the line away.
 | Sounds | `Sounds/` | | Harvests | `Work/Harvests/` |
 | Fonts | `Fonts/` | | Exports | `Work/Exports/` |
 | Emitters | `Emitters/` | | Inbox | `Work/Inbox/` |
-| Shaders | `Shaders/` | | | |
+| Shaders | `Shaders/` | | Menus | `Menus/<game or app>/` |
 
 What you make and keep goes at the top; what the machine makes goes in `Work/`, which is
 safe to empty. `Inbox` is the default for "Save as..." when nothing else fits. The layout
@@ -57,6 +57,7 @@ and its rules (taken from iGame3D's 2008 `Data/` folder) are in `~/projects/LIB_
 | `Data.Ensure` | create missing folders and `ROOT.md` |
 | `Data.Kinds()`, `Data.KindFolder(kind)` | `kind,folder` lines; one kind's folder |
 | `Data.Folder(kind [, sub])` | full path of a kind's folder or subfolder, created |
+| `Data.MenuFolder(app [, true])` | `Menus/<game or app>/` (menu item lists), or its `Functions/` (callbacks) with true; created |
 | `Data.Path(kind, name)` | full path of a file; its folder is created, the file is not |
 | `Data.Relative(path)` | a full path written relative to the root |
 | `Data.SaveText(kind, name, text [, dated])` | write UTF-8 text, return the path |
@@ -72,6 +73,8 @@ cannot leave the Data folder.
 `python3 tests/run_tests.py`: 29 checks in real LiveCode 9.6.3 through LIB_MCP, in a
 throwaway folder (`C:/LIB_MCP/data_test`); the user's own `Documents/Data` is never created
 or touched. All pass.
+
+`OXT-BEYOND/tests/t50_data_menus.txt`: the Menus kind and `Data.MenuFolder`, headless, 13 checks, all pass on OXT-Beyond and 9.6.3.
 
 `OXT-BEYOND/tests/t32_data_forwarding.txt`: the forwarding line, headless (no window), on the
 OXT-Beyond engine and the 9.6.3 server, with `Data.TestFolders` standing in for Documents and
