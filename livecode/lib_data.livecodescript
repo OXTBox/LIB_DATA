@@ -13,7 +13,7 @@ script "LIB_DATA"
 -- Names may contain "/" for subfolders but never "..": a name cannot leave the Data folder.
 -- Handlers: Data.Root, Data.DefaultRoot, Data.SavedRoot, Data.ForwardedRoot, Data.SetRoot, Data.UseRoot,
 -- Data.Ensure, Data.Kinds, Data.KindFolder, Data.Folder, Data.Path, Data.Relative,
--- Data.SaveText, Data.LoadText, Data.DatedName, Data.Error; test hook Data.TestFolders
+-- Data.MenuFolder, Data.SaveText, Data.LoadText, Data.DatedName, Data.Error; test hook Data.TestFolders
 --
 -- Errors: a handler that cannot do its job returns empty (or false); Data.Error() says why.
 --
@@ -48,6 +48,7 @@ function Data.Kinds
          "Shaders,Shaders" & return & \
          "Procedures,Procedures" & return & \
          "Help,Help" & return & \
+         "Menus,Menus" & return & \
          "Users,Users" & return & \
          "Snapshots,Work/Snapshots" & return & \
          "Logs,Work/Logs" & return & \
@@ -188,6 +189,24 @@ function Data.Folder pKind, pSub
    if not dataMakeFolder(tPath) then return empty
    return tPath
 end Data.Folder
+
+-- the user's menus of one game or app (the owner's 2009 layout, LIB_MENU):
+--   Menus/<game or app>/            the menu item lists, one file a menu
+--   Menus/<game or app>/Functions/  the callbacks those menus use
+--   Data.MenuFolder("Status_Browser")  Data.MenuFolder("DeadDays", true)
+-- created if missing; LIB_MENU ships the same shape as Data/Default/<game or app>/Menus/
+function Data.MenuFolder pApp, pFunctions
+   if pApp is empty then
+      put "no game or app named for its menus" into sError
+      return empty
+   end if
+   if pApp contains "/" or pApp contains "\" then
+      put "unsafe name: " & pApp into sError
+      return empty
+   end if
+   if pFunctions is true then return Data.Folder("Menus", pApp & "/Functions")
+   return Data.Folder("Menus", pApp)
+end Data.MenuFolder
 
 -- the full path of a file of that kind; its folder is created, the file is not
 --   Data.Path("Models", "Vehicles_air/heli.glb")
