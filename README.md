@@ -88,3 +88,9 @@ AppData. 19 checks, all pass on both.
 - `data_layout.json` so Python tools (xtalk_py, Spark runners) follow the same layout.
 
 Part of the family of separate libraries listed in `~/projects/LIB_MCP/README.md`.
+
+## Licence
+
+GPL-3.0 (see `LICENSE`), because the xTalk work here is built on the GPL-licensed LiveCode Community 9 engine. Copyright (c) 2026 xAction.
+
+The Python files (`.py`) and other material that is not xTalk are also offered under the MIT licence, Copyright (c) 2026 xAction: you may use them under either licence.
